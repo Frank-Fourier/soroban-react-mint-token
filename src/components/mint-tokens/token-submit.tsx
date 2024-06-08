@@ -6,13 +6,11 @@ import {
   IconButton,
   Icon,
   Loader,
-  Profile,
 } from "@stellar/design-system";
 import { copyContent } from "../../helpers/dom";
 
 interface SubmitTokenProps {
   quantity: string;
-  destination: string;
   fee: string;
   isSubmitting: boolean;
   memo: string;
@@ -25,18 +23,12 @@ interface SubmitTokenProps {
 export const SubmitToken = (props: SubmitTokenProps) => (
   <>
     <Heading as="h1" size="sm">
-      Submit Mint Transaction
+      Submit Deposit Transaction
     </Heading>
     <div className="tx-details">
       <div className="tx-detail-item">
         <p className="detail-header">Network</p>
         <p className="detail-value">{props.network}</p>
-      </div>
-      <div className="tx-detail-item">
-        <p className="detail-header">To</p>
-        <div className="dest-identicon">
-          <Profile isShort publicAddress={props.destination} size="sm" />
-        </div>
       </div>
       <div className="tx-detail-item">
         <p className="detail-header">Quantity</p>
@@ -68,7 +60,7 @@ export const SubmitToken = (props: SubmitTokenProps) => (
     </div>
     <div className="submit-row-confirm">
       <Button size="md" variant="tertiary" isFullWidth onClick={props.onClick}>
-        Submit Mint Transaction
+        Submit Deposit Transaction
         {props.isSubmitting && <Loader />}
       </Button>
     </div>

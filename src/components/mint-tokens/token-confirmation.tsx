@@ -1,10 +1,11 @@
 import React from "react";
-import { Button, Heading, Profile } from "@stellar/design-system";
-import { Soroban } from "@stellar/stellar-sdk";
+import { Button, Heading, Loader } from "@stellar/design-system";
+// import { Soroban } from "@stellar/stellar-sdk";
 import { StellarWalletsKit } from "stellar-wallets-kit";
+import { ethers } from "ethers";
 import { xlmToStroop } from "../../helpers/format";
 import { NetworkDetails, signTx } from "../../helpers/network";
-import { mintTokens, getTxBuilder, getServer } from "../../helpers/soroban";
+import { mintTokens, getTxBuilder, getServer, /* getTokenDecimals */ } from "../../helpers/soroban";
 import { ERRORS } from "../../helpers/error";
 
 interface ConfirmMintTxProps {
@@ -23,12 +24,17 @@ interface ConfirmMintTxProps {
 }
 
 export const ConfirmMintTx = (props: ConfirmMintTxProps) => {
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
   const signWithFreighter = async () => {
     // Need to use the perviously fetched token decimals to properly display the quantity value
-    const quantity = Soroban.parseTokenAmount(
+    /* const quantity = Soroban.parseTokenAmount(
       props.quantity,
       props.tokenDecimals,
-    );
+    ); */
+    setIsSubmitting(true);
+
+    console.log(props.tokenDecimals, props.quantity)
 
     // Get an instance of a Soroban RPC set to the selected network
     const server = getServer(props.networkDetails);
@@ -42,7 +48,7 @@ export const ConfirmMintTx = (props: ConfirmMintTxProps) => {
 
     const xdr = await mintTokens({
       tokenId: props.tokenId,
-      quantity: Number(quantity),
+      quantity: ethers.parseUnits(props.quantity, props.tokenDecimals).toString(),
       destinationPubKey: props.destination,
       memo: props.memo,
       txBuilderAdmin,
@@ -52,15 +58,17 @@ export const ConfirmMintTx = (props: ConfirmMintTxProps) => {
     try {
       // Signs XDR representing the "mint" transaction
       const signedTx = await signTx(xdr, props.pubKey, props.kit);
+      setIsSubmitting(false);
       props.onTxSign(signedTx);
     } catch (e) {
+      setIsSubmitting(false);
       props.setError(ERRORS.UNABLE_TO_SIGN_TX);
     }
   };
   return (
     <>
       <Heading as="h1" size="sm">
-        Confirm Mint Transaction
+        Confirm Deposit Transaction
       </Heading>
       <div className="tx-details">
         <div className="tx-detail-item">
@@ -68,15 +76,9 @@ export const ConfirmMintTx = (props: ConfirmMintTxProps) => {
           <p className="detail-value">{props.networkDetails.network}</p>
         </div>
         <div className="tx-detail-item">
-          <p className="detail-header">To</p>
-          <div className="dest-identicon">
-            <Profile isShort publicAddress={props.destination} size="sm" />
-          </div>
-        </div>
-        <div className="tx-detail-item">
           <p className="detail-header">Quantity</p>
           <p className="detail-value">
-            {props.quantity} {props.tokenSymbol}
+            {parseFloat(props.quantity).toFixed(2).toString()} {props.tokenSymbol}
           </p>
         </div>
         <div className="tx-detail-item">
@@ -96,6 +98,7 @@ export const ConfirmMintTx = (props: ConfirmMintTxProps) => {
           onClick={signWithFreighter}
         >
           Sign with Freighter
+          {isSubmitting && <Loader />}
         </Button>
       </div>
     </>

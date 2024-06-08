@@ -44,6 +44,10 @@ export const accountToScVal = (account: string) =>
 export const numberToI128 = (value: number): xdr.ScVal =>
   nativeToScVal(value, { type: "i128" });
 
+// Can be used whenever you need an i128 argument for a contract method
+export const stringToI128 = (value: string): xdr.ScVal =>
+  nativeToScVal(value, { type: "i128" });
+
 // Given a display value for a token and a number of decimals, return the correspding BigNumber
 export const parseTokenAmount = (value: string, decimals: number) => {
   const comps = value.split(".");
@@ -215,7 +219,7 @@ export const mintTokens = async ({
   server,
 }: {
   tokenId: string;
-  quantity: number;
+  quantity: string;
   destinationPubKey: string;
   memo: string;
   txBuilderAdmin: TransactionBuilder;
@@ -227,10 +231,10 @@ export const mintTokens = async ({
     const tx = txBuilderAdmin
       .addOperation(
         contract.call(
-          "mint",
+          "deposit",
           ...[
-            accountToScVal(destinationPubKey), // to
-            numberToI128(quantity), // quantity
+            accountToScVal(destinationPubKey), // from
+            stringToI128(quantity), // quantity
           ],
         ),
       )
@@ -251,7 +255,7 @@ export const mintTokens = async ({
 
 export const getEstimatedFee = async (
   tokenId: string,
-  quantity: number,
+  quantity: string,
   destinationPubKey: string,
   memo: string,
   txBuilder: TransactionBuilder,
@@ -261,10 +265,10 @@ export const getEstimatedFee = async (
   const tx = txBuilder
     .addOperation(
       contract.call(
-        "mint",
+        "deposit",
         ...[
-          accountToScVal(destinationPubKey), // to
-          numberToI128(quantity), // quantity
+          accountToScVal(destinationPubKey), // from
+          stringToI128(quantity), // quantity
         ],
       ),
     )

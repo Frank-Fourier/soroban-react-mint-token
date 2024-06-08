@@ -12,13 +12,6 @@
     "type": "git",
     "url": "git+https://github.com/stellar/soroban-react-mint-token.git"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "concurrently 'pretty-quick --staged' 'lint-staged'",
-      "post-merge": "yarn install-if-package-changed",
-      "post-checkout": "yarn install-if-package-changed"
-    }
-  },
   "lint-staged": {
     "src/**/*.ts?(x)": [
       "eslint --fix --max-warnings 0"
@@ -101,6 +94,7 @@
     "@stellar/freighter-api": "^1.7.1",
     "@stellar/stellar-sdk": "^11.3.0",
     "bignumber.js": "^9.1.1",
+    "ethers": "^6.13.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "stellar-wallets-kit": "github:Creit-Tech/Stellar-Wallets-Kit"

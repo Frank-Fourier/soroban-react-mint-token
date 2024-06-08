@@ -12,7 +12,7 @@ export const ConnectWallet = (props: ConnectWalletProps) => {
   return (
     <>
       <Heading as="h1" size="sm">
-        Mint tokens
+        Invest with BondHive
       </Heading>
       <Select
         disabled

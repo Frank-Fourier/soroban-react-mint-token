@@ -1,6 +1,5 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import BigNumber from "bignumber.js";
 import {
   Card,
   Caption,
@@ -15,6 +14,8 @@ import {
   WalletType,
   ISupportedWallet,
 } from "stellar-wallets-kit";
+import { Contract, TimeoutInfinite, TransactionBuilder } from "@stellar/stellar-sdk";
+import { ethers } from "ethers";
 
 import { stroopToXlm } from "../../helpers/format";
 import { TESTNET_DETAILS } from "../../helpers/network";
@@ -24,10 +25,10 @@ import {
   getTxBuilder,
   BASE_FEE,
   XLM_DECIMALS,
-  getTokenDecimals,
-  getTokenSymbol,
   getServer,
   submitTx,
+  simulateTx,
+  accountToScVal,
 } from "../../helpers/soroban";
 
 import { TxResult } from "./tx-result";
@@ -35,9 +36,9 @@ import { SubmitToken } from "./token-submit";
 import { ConfirmMintTx } from "./token-confirmation";
 import { TokenTransaction } from "./token-transaction";
 import { TokenQuantity } from "./token-quantity";
-import { TokenInput } from "./token-input";
 import { TokenDest } from "./token-destination";
 import { ConnectWallet } from "./connect-wallet";
+import { Pool } from "../../constants/poolOptions";
 
 import "./index.scss";
 
@@ -63,10 +64,17 @@ export const MintToken = (props: MintTokenProps) => {
 
   const [fee, setFee] = React.useState(BASE_FEE);
   const [memo, setMemo] = React.useState("");
-  const [tokenId, setTokenId] = React.useState("");
   const [tokenDecimals, setTokenDecimals] = React.useState(XLM_DECIMALS);
-  const [tokenDestination, setTokenDestination] = React.useState("");
+  // const [pool, setPool] = React.useState({} as Pool);
+  const [vaultId, setVaultId] = React.useState("");
   const [tokenSymbol, setTokenSymbol] = React.useState("");
+  const [TVL, setTVL] = React.useState("");
+  const [tokenBalance, setTokenBalance] = React.useState("");
+  /*
+  const [shareDecimals, setShareDecimals] = React.useState(XLM_DECIMALS);
+  const [shareId, setShareId] = React.useState("");
+  const [shareSymbol, setShareSymbol] = React.useState("");
+  */
   const [quantity, setQuantity] = React.useState("");
   const [txResultXDR, setTxResultXDR] = React.useState("");
   const [signedXdr, setSignedXdr] = React.useState("");
@@ -91,9 +99,17 @@ export const MintToken = (props: MintTokenProps) => {
   }, [selectedNetwork.networkPassphrase, SWKKit]);
 
   // with a user provided token ID, fetch token details
-  async function setToken(id: string) {
+  async function setVault(vault: Pool) {
     setIsLoadingTokenDetails(true);
-    setTokenId(id);
+    // setPool(vault);
+    setVaultId(vault.address);
+    setTokenSymbol(vault.tokenSymbol);
+    setTokenDecimals(vault.tokenDecimals);
+    /*
+    setShareId(vault.shareId);
+    setShareDecimals(vault.shareDecimals);
+    setShareSymbol(vault.shareSymbol);
+    */
 
     // get an instance of a Soroban RPC server for the selected network
     const server = getServer(selectedNetwork);
@@ -103,39 +119,88 @@ export const MintToken = (props: MintTokenProps) => {
       // so we need to get a transaction builder for every operation we want to call.
       // In the future, we will be able to use more than 1 operation in a single transaction.
 
-      const txBuilderAdmin = await getTxBuilder(
+      const txBuilderReserves = await getTxBuilder(
         activePubKey!,
         BASE_FEE,
         server,
         selectedNetwork.networkPassphrase,
       );
+
+      // Get the tokens name, decoded as a string
+      const getRsrvs = async (
+        id: string,
+        txBuilder: TransactionBuilder,
+        connection: any,
+      ) => {
+        console.log("id", id);
+        const contract = new Contract(id);
+        const tx = txBuilder
+          .addOperation(contract.call("get_rsrvs"))
+          .setTimeout(TimeoutInfinite)
+          .build();
+
+        const result = await simulateTx<string>(tx, connection);
+        return ethers.formatUnits(result, vault.tokenDecimals);
+      };
 
       // Get the symbol for the set token ID
       // https://github.com/stellar/soroban-examples/blob/main/token/src/contract.rs#L47
-      const symbol = await getTokenSymbol(id, txBuilderAdmin, server);
-      setTokenSymbol(symbol);
-
-      const txBuilderDecimals = await getTxBuilder(
+      const poolReserves = await getRsrvs(vault.address, txBuilderReserves, server);
+      setTVL(poolReserves);
+      console.log("poolReserves", poolReserves);
+      
+      const txBuilderBalance = await getTxBuilder(
         activePubKey!,
         BASE_FEE,
         server,
         selectedNetwork.networkPassphrase,
       );
 
-      // Get the number of decimals set for the selected token, so that we can properly display
-      // a formatted value.
-      // https://github.com/stellar/soroban-examples/blob/main/token/src/contract.rs#L43
-      const decimals = await getTokenDecimals(id, txBuilderDecimals, server);
-      setTokenDecimals(decimals);
-      setIsLoadingTokenDetails(false);
+      // Get the tokens name, decoded as a string
+      const getTokenBalance = async (
+        id: string,
+        txBuilder: TransactionBuilder,
+        connection: any,
+        destinationPubKey: string | null = null,
+      ) => {
+        console.log("id", id);
+        const contract = new Contract(id);
+        if ( !destinationPubKey ) {
+          console.log("destinationPubKey is null");
+          return "0";
+        }
+        const tx = txBuilder
+          .addOperation(
+            contract.call(
+              "balance",
+              ...[
+                accountToScVal(destinationPubKey) // id
+              ],
+            ),
+          )
+          .setTimeout(TimeoutInfinite)
+          .build();
+
+        const result = await simulateTx<string>(tx, connection);
+        console.log("result", result);
+        console.log("result.toString()", result.toString());
+        return ethers.formatUnits(result, vault.tokenDecimals);
+      }; 
+
+      // Get the symbol for the set token ID
+      // https://github.com/stellar/soroban-examples/blob/main/token/src/contract.rs#L47
+      const tokenBalanceUser = await getTokenBalance(vault.tokenId, txBuilderBalance, server, activePubKey);
+      setTokenBalance(tokenBalanceUser);
+      console.log("tokenBalanceUser", tokenBalanceUser);
 
       return true;
     } catch (error) {
       console.log(error);
       setConnectionError("Unable to fetch token details.");
-      setIsLoadingTokenDetails(false);
 
       return false;
+    } finally {
+      setIsLoadingTokenDetails(false);
     }
   }
 
@@ -152,9 +217,9 @@ export const MintToken = (props: MintTokenProps) => {
       );
 
       const estimatedFee = await getEstimatedFee(
-        tokenId,
-        new BigNumber(quantity).toNumber(),
-        tokenDestination,
+        vaultId,
+        ethers.parseUnits(quantity, tokenDecimals).toString(),
+        activePubKey!,
         memo,
         builder,
         server,
@@ -171,11 +236,11 @@ export const MintToken = (props: MintTokenProps) => {
   // This uses the StepCount tro render to currently active step in the payment flow
   function renderStep(step: StepCount) {
     switch (step) {
-      case 8: {
+      case 7: {
         const onClick = () => setStepCount(1);
         return <TxResult onClick={onClick} resultXDR={txResultXDR} />;
       }
-      case 7: {
+      case 6: {
         // Uses state saved from previous steps in order to submit a transaction to the network
         const submit = async () => {
           const server = getServer(selectedNetwork);
@@ -202,7 +267,6 @@ export const MintToken = (props: MintTokenProps) => {
         return (
           <SubmitToken
             network={selectedNetwork.network}
-            destination={tokenDestination}
             quantity={quantity}
             tokenSymbol={tokenSymbol}
             fee={fee}
@@ -213,18 +277,18 @@ export const MintToken = (props: MintTokenProps) => {
           />
         );
       }
-      case 6: {
+      case 5: {
         const setSignedTx = (xdr: string) => {
           setSignedXdr(xdr);
           setStepCount((stepCount + 1) as StepCount);
         };
         return (
           <ConfirmMintTx
-            tokenId={tokenId}
+            tokenId={vaultId}
             pubKey={activePubKey!}
             tokenSymbol={tokenSymbol}
             onTxSign={setSignedTx}
-            destination={tokenDestination}
+            destination={activePubKey!}
             quantity={quantity}
             fee={fee}
             memo={memo}
@@ -235,7 +299,7 @@ export const MintToken = (props: MintTokenProps) => {
           />
         );
       }
-      case 5: {
+      case 4: {
         const onClick = () => setStepCount((stepCount + 1) as StepCount);
         return (
           <TokenTransaction
@@ -247,7 +311,7 @@ export const MintToken = (props: MintTokenProps) => {
           />
         );
       }
-      case 4: {
+      case 3: {
         const onClick = async () => {
           // set estimated fee for next step
           await getFee();
@@ -267,10 +331,12 @@ export const MintToken = (props: MintTokenProps) => {
             setQuantity={setQuantity}
             onClick={onClick}
             tokenSymbol={tokenSymbol}
+            tokenBalance={tokenBalance}
+            TVL={TVL}
           />
         );
       }
-      case 3: {
+      case 2: {
         if (isLoadingTokenDetails) {
           return (
             <div className="loading">
@@ -278,22 +344,16 @@ export const MintToken = (props: MintTokenProps) => {
             </div>
           );
         }
-        const onClick = async (value: string) => {
-          const success = await setToken(value);
+        const onClick = async (vault: Pool) => {
+          const success = await setVault(vault);
 
           if (success) {
             setStepCount((stepCount + 1) as StepCount);
           }
         };
-        return <TokenInput onClick={onClick} />;
-      }
-      case 2: {
-        const onClick = () => setStepCount((stepCount + 1) as StepCount);
         return (
           <TokenDest
             onClick={onClick}
-            setDestination={setTokenDestination}
-            destination={tokenDestination}
           />
         );
       }
@@ -350,18 +410,10 @@ export const MintToken = (props: MintTokenProps) => {
         )}
       </div>
       <div className="Layout__inset layout">
-        {stepCount === 3 && (
-          <div className="admin-banner-container">
-            <Notification
-              title="Account must be an admin of the token"
-              variant="primary"
-            />
-          </div>
-        )}
         <div className="mint-token">
           <Card variant="primary">
             <Caption size="sm" addlClassName="step-count">
-              step {stepCount} of 8
+              step {stepCount} of 7
             </Caption>
             {renderStep(stepCount)}
           </Card>
