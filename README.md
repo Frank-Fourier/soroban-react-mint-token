@@ -16,7 +16,7 @@ The Mint Token DApp relies on the following dependencies:
 
 - Freighter wallet(v5.0 or newer): https://www.freighter.app/
 
-## Features
+## Features 
 
 The Mint Token DApp offers the following features:
 
