@@ -14,7 +14,7 @@ export const TESTNET_DETAILS = {
 
 export const MAINNET_DETAILS = {
   network: "MAINNET",
-  networkUrl: "https://soroban-rpc.mainnet.stellar.gateway.fm/",
+  networkUrl: "https://svc.blockdaemon.com/stellar/mainnet/native/soroban-rpc",
   networkPassphrase: "Public Global Stellar Network ; September 2015",
 };
 
