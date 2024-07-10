@@ -34,7 +34,7 @@ export const XLM_DECIMALS = 7;
 
 export const RPC_URLS: { [key: string]: string } = {
   TESTNET: "https://soroban-testnet.stellar.org/",
-  MAINNET: "https://svc.blockdaemon.com/stellar/mainnet/native/soroban-rpc",
+  MAINNET: "https://weathered-ultra-general.stellar-mainnet.quiknode.pro/59baa2ce47397302d2c57e2b1385f38c311dffe6",
 };
 
 // Can be used whenever you need an Address argument for a contract method
