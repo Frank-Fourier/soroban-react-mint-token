@@ -18,7 +18,7 @@ import { Contract, TimeoutInfinite, TransactionBuilder } from "@stellar/stellar-
 import { ethers } from "ethers";
 
 import { stroopToXlm } from "../../helpers/format";
-import { TESTNET_DETAILS } from "../../helpers/network";
+import { MAINNET_DETAILS } from "../../helpers/network";
 import { ERRORS } from "../../helpers/error";
 import {
   getEstimatedFee,
@@ -53,7 +53,7 @@ export const MintToken = (props: MintTokenProps) => {
   const hasHeader = props.hasHeader === undefined ? true : props.hasHeader;
 
   // Default to Testnet network
-  const [selectedNetwork] = React.useState(TESTNET_DETAILS);
+  const [selectedNetwork] = React.useState(MAINNET_DETAILS);
 
   // Initial state, empty states for token/transaction details
   const [activePubKey, setActivePubKey] = React.useState(null as string | null);
@@ -376,7 +376,7 @@ export const MintToken = (props: MintTokenProps) => {
                   SWKKit.setWallet(option.type);
                   const publicKey = await SWKKit.getPublicKey();
 
-                  await SWKKit.setNetwork(WalletNetwork.TESTNET);
+                  await SWKKit.setNetwork(WalletNetwork.PUBLIC);
                   setActivePubKey(publicKey);
                 } catch (error) {
                   console.log(error);
