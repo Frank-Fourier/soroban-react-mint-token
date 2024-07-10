@@ -7,6 +7,7 @@ import {
   Operation,
   scValToNative,
   SorobanRpc,
+  Horizon,
   TimeoutInfinite,
   Transaction,
   TransactionBuilder,
@@ -85,7 +86,8 @@ export const parseTokenAmount = (value: string, decimals: number) => {
 
 // Get a server configfured for a specific network
 export const getServer = (networkDetails: NetworkDetails) =>
-  new SorobanRpc.Server(networkDetails.networkUrl);
+new Horizon.Server(networkDetails.networkUrl);
+
 
 // Get a TransactionBuilder configured with our public key
 export const getTxBuilder = async (
