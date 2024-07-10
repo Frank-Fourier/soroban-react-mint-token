@@ -86,7 +86,7 @@ export const parseTokenAmount = (value: string, decimals: number) => {
 // Get a server configfured for a specific network
 export const getServer = (networkDetails: NetworkDetails) =>
 new SorobanRpc.Server(networkDetails.networkUrl, {
-  allowHttp: networkDetails.networkUrl.startsWith("http://"),
+  headers: {}
 });
 
 // Get a TransactionBuilder configured with our public key
